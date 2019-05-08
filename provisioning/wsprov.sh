@@ -8,12 +8,12 @@ if [[ $EUID > 0 ]]; then
 fi
 echo 'Enter a hostname for this machine: '
 read hostn
-sed -i "s/$(hostnamectl --static)/$hostn.csg.local/" /etc/hosts # Correct the FQDN in /etc/hosts 
-hostnamectl set-hostname $hostn.csg.local
+sed -i "s/$(hostnamectl --static)/$hostn.csg.ius.edu/" /etc/hosts # Correct the FQDN in /etc/hosts 
+hostnamectl set-hostname $hostn.csg.ius.edu
 # Don't prompt during install, use debconf
 export DEBIAN_FRONTEND="noninteractive"
-debconf-set-selections <<< "krb5-config krb5-config/default_realm string AD.CSG.LOCAL"
-debconf-set-selections <<< "krb5-config krb5-config/kerberos_servers string ad.csg.local"
+debconf-set-selections <<< "krb5-config krb5-config/default_realm string AD.CSG.IUS.EDU"
+debconf-set-selections <<< "krb5-config krb5-config/kerberos_servers string ad.csg.ius.edu"
 apt-get update -qq
 apt-get install ufw adcli realmd krb5-user samba-common-bin samba-libs samba-dsdb-modules sssd sssd-tools libnss-sss libpam-sss packagekit policykit-1 unattended-upgrades software-properties-common -y
 apt-add-repository --yes --update ppa:ansible/ansible
@@ -40,7 +40,7 @@ read smbc << EOF
    client signing = yes
    client use spnego = yes
    kerberos method = secrets and keytab
-   realm = AD.CSG.LOCAL
+   realm = AD.CSG.IUS.EDU
    security = ads
    # End CSG config
 EOF
@@ -54,14 +54,14 @@ reconnection_retries = 3
 [pam]
 reconnection_retries = 3
 [sssd]
-domains = ad.csg.local
+domains = ad.csg.ius.edu
 config_file_version = 2
 services = nss, pam
-default_domain_suffix = AD.CSG.LOCAL
+default_domain_suffix = AD.CSG.IUS.EDU
 full_name_format = %1$s
-[domain/ad.csg.local]
-ad_domain = ad.csg.local
-krb5_realm = AD.CSG.LOCAL
+[domain/ad.csg.ius.edu]
+ad_domain = ad.csg.ius.edu
+krb5_realm = AD.CSG.IUS.EDU
 realmd_tags = manages-system joined-with-samba
 cache_credentials = True
 id_provider = ad
@@ -83,7 +83,7 @@ EOF
 chmod 700 /etc/sssd/sssd.conf
 ufw enable # Turn on the firewall
 nmcli connection modify 'Wired connection 1' ipv4.dns "192.168.1.140,192.168.1.139,1.1.1.1" 
-nmcli connection modify 'Wired connection 1' ipv4.dns-search 'csg.local'
+nmcli connection modify 'Wired connection 1' ipv4.dns-search 'csg.ius.edu'
 nmcli connection modify 'Wired connection 1' ipv4.ignore-auto-dns yes # Ignore the router's DHCP DNS addresses, for now
 systemctl restart NetworkManager
 # Configure sudo for AD
@@ -113,7 +113,7 @@ export DEBIAN_FRONTEND="dialog"
 echo 'Enter the username for an AD user with permissions to join the domain:'
 read adadmin
 kinit $adadmin
-realm discover -v AD.CSG.LOCAL
-realm join AD.CSG.LOCAL -U $adadmin -v
+realm discover -v AD.CSG.IUS.EDU
+realm join AD.CSG.IUS.EDU -U $adadmin -v
 net ads join -k
 pam-auth-update
