@@ -79,7 +79,6 @@ chmod 700 /etc/sssd/sssd.conf
 if [ -x "$(command -v nmcli)" ]; then
   nmcli connection modify 'Wired connection 1' ipv4.dns "192.168.1.140,192.168.1.139,1.1.1.1" 
   nmcli connection modify 'Wired connection 1' ipv4.dns-search 'csg.ius.edu'
-  nmcli connection modify 'Wired connection 1' ipv4.ignore-auto-dns yes # Ignore the router's DHCP DNS addresses, for now
   systemctl restart NetworkManager
 else
   echo 'Unable to configure DNS servers with nmcli, assuming current DNS servers are correct'
@@ -99,13 +98,17 @@ As a superuser, please remember the following:
 If you have any further questions, contact whoever gave you superuser rights. 
 EOF
 # Restart stuff
-systemctl restart smbd sssd realmd
-systemctl enable smbd sssd realmd
-export DEBIAN_FRONTEND="dialog"
-echo 'Enter the username for an AD user with permissions to join the domain:'
-read adadmin
-kinit $adadmin
-realm discover -v AD.CSG.IUS.EDU
-realm join AD.CSG.IUS.EDU -U $adadmin -v
-net ads join -k
-pam-auth-update
+echo -n 'Join the domain now? [Y/n]: '
+read adstart
+if [ -z $adstart] || [ $adstart -eq 'y' ] || [ $adstart -eq 'Y' ]; then
+  systemctl restart smbd sssd realmd
+  systemctl enable smbd sssd realmd
+  export DEBIAN_FRONTEND="dialog"
+  echo -n 'Enter the username for an AD user with permissions to join the domain: '
+  read adadmin
+  kinit $adadmin
+  realm discover -v AD.CSG.IUS.EDU
+  realm join AD.CSG.IUS.EDU -U $adadmin -v
+  net ads join -k
+  pam-auth-update
+fi
