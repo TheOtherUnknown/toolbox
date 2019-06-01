@@ -1,5 +1,5 @@
 #!/bin/bash
-# Provision servers (sort of anyway)
+# Provision Debian 9 servers (sort of anyway)
 # MUST RUN AS ROOT
 
 if [[ $EUID > 0 ]]; then
@@ -12,9 +12,11 @@ sleep 5
 export DEBIAN_FRONTEND="noninteractive"
 debconf-set-selections <<< "krb5-config krb5-config/default_realm string AD.CSG.IUS.EDU"
 debconf-set-selections <<< "krb5-config krb5-config/kerberos_servers string ad.csg.ius.edu"
+# Add backports repo
+echo 'deb http://deb.debian.org/debian stretch-backports main' > /etc/apt/sources.list.d/stretch-backports.list
 apt-get update -qq
-apt-get install adcli realmd krb5-user samba-common-bin samba-libs samba-dsdb-modules sssd sssd-tools libnss-sss libpam-sss packagekit policykit-1 unattended-upgrades software-properties-common -y
-apt-add-repository --yes --update ppa:ansible/ansible
+apt-get install adcli realmd krb5-user samba-common-bin samba-libs samba-dsdb-modules sssd sssd-tools libnss-sss libpam-sss unattended-upgrades -y
+apt-get -t stretch-backports install ansible -y
 # Automatic updates
 cat << EOF > /etc/apt/apt.conf.d/20auto-upgrades
 APT::Periodic::Update-Package-Lists "1";
@@ -29,7 +31,7 @@ Unattended-Upgrade::Origins-Pattern {
 Unattended-Upgrade::Automatic-Reboot "false";
 EOF
 # AD config
-read smbc << EOF
+smbc='
    # Start CSG config
    workgroup = CSG
    client signing = yes
@@ -38,8 +40,8 @@ read smbc << EOF
    realm = AD.CSG.IUS.EDU
    security = ads
    # End CSG config
-EOF
-awk -i inplace -v x="$smbc" '{print} /\[global\]/{print x}'  /etc/samba/smb.conf # https://stackoverflow.com/questions/47582028
+'
+gawk -i inplace -v x="$smbc" '{print} /\[global\]/{print x}'  /etc/samba/smb.conf # https://stackoverflow.com/questions/47582028
 cat << EOF > /etc/sssd/sssd.conf
 # Config file for SSSD to allow for auth via AD
 [nss]
@@ -100,7 +102,8 @@ EOF
 # Restart stuff
 echo -n 'Join the domain now? [Y/n]: '
 read adstart
-if [ -z $adstart] || [ $adstart -eq 'y' ] || [ $adstart -eq 'Y' ]; then
+adstart=${adstart:-y}
+if [ "$adstart" = "y" ] || [ "$adstart" = "Y" ] ; then
   systemctl restart smbd sssd realmd
   systemctl enable smbd sssd realmd
   export DEBIAN_FRONTEND="dialog"
