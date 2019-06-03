@@ -2,7 +2,7 @@
 # Provision Debian 9 servers (sort of anyway)
 # MUST RUN AS ROOT
 
-if [[ $EUID > 0 ]]; then
+if [[ $EUID -gt 0 ]]; then
   echo 'This script must be run as root!'
   exit 1
 fi
@@ -109,9 +109,9 @@ if [ "$adstart" = "y" ] || [ "$adstart" = "Y" ] ; then
   export DEBIAN_FRONTEND="dialog"
   echo -n 'Enter the username for an AD user with permissions to join the domain: '
   read adadmin
-  kinit $adadmin
+  kinit "$adadmin"
   realm discover -v AD.CSG.IUS.EDU
-  realm join AD.CSG.IUS.EDU -U $adadmin -v
+  realm join AD.CSG.IUS.EDU -U "$adadmin" -v
   net ads join -k
   pam-auth-update
 fi
