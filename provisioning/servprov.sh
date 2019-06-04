@@ -6,8 +6,8 @@ if [[ $EUID -gt 0 ]]; then
   echo 'This script must be run as root!'
   exit 1
 fi
-echo 'This script does not set the FQDN! If it is not correct, please stop the script and correct it NOW.'
-sleep 5
+echo '[!] This script does not set the FQDN! If it is not correct, please stop the script and correct it NOW.'
+sleep 3
 # Don't prompt during install, use debconf
 export DEBIAN_FRONTEND="noninteractive"
 debconf-set-selections <<< "krb5-config krb5-config/default_realm string AD.CSG.IUS.EDU"
@@ -31,6 +31,7 @@ Unattended-Upgrade::Origins-Pattern {
 Unattended-Upgrade::Automatic-Reboot "false";
 EOF
 # AD config
+sed -i '/workgroup/d' /etc/samba/smb.conf # Remove default workgroup line
 smbc='
    # Start CSG config
    workgroup = CSG
@@ -83,7 +84,7 @@ if [ -x "$(command -v nmcli)" ]; then
   nmcli connection modify 'Wired connection 1' ipv4.dns-search 'csg.ius.edu'
   systemctl restart NetworkManager
 else
-  echo 'Unable to configure DNS servers with nmcli, assuming current DNS servers are correct'
+  echo '[!] Unable to configure DNS servers with nmcli, assuming current DNS servers are correct'
   sleep 5
 fi
 # Configure sudo for AD
