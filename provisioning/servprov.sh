@@ -2,7 +2,7 @@
 # Provision Debian 9 servers (sort of anyway)
 # MUST RUN AS ROOT
 
-if [[ $EUID -gt 0 ]]; then
+if [ $EUID -gt 0 ]; then
   echo 'This script must be run as root!'
   exit 1
 fi

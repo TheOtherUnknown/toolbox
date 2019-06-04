@@ -1,8 +1,8 @@
 #!/bin/bash
-# Provision workstations (sort of anyway)
+# Provision Ubuntu workstations (sort of anyway)
 # MUST RUN AS ROOT
 
-if [[ $EUID > 0 ]]; then
+if [ $EUID -gt 0 ]; then
   echo 'This script must be run as root!'
   exit 1
 fi
@@ -14,9 +14,9 @@ hostnamectl set-hostname $hostn.csg.ius.edu
 export DEBIAN_FRONTEND="noninteractive"
 debconf-set-selections <<< "krb5-config krb5-config/default_realm string AD.CSG.IUS.EDU"
 debconf-set-selections <<< "krb5-config krb5-config/kerberos_servers string ad.csg.ius.edu"
+add-apt-repository universe
 apt-get update -qq
-apt-get install ufw adcli realmd krb5-user samba-common-bin samba-libs samba-dsdb-modules sssd sssd-tools libnss-sss libpam-sss packagekit policykit-1 unattended-upgrades software-properties-common -y
-apt-add-repository --yes --update ppa:ansible/ansible
+apt-get install ufw adcli realmd krb5-user samba-common-bin samba-libs samba-dsdb-modules sssd sssd-tools libnss-sss libpam-sss unattended-upgrades ansible -y
 # Automatic updates
 cat << EOF > /etc/apt/apt.conf.d/20auto-upgrades
 APT::Periodic::Update-Package-Lists "1";
@@ -34,7 +34,7 @@ Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
 Unattended-Upgrade::Automatic-Reboot-Time "02:00";
 EOF
 # AD config
-read smbc << EOF
+smbc='
    # Start CSG config
    workgroup = CSG
    client signing = yes
@@ -43,8 +43,9 @@ read smbc << EOF
    realm = AD.CSG.IUS.EDU
    security = ads
    # End CSG config
-EOF
-awk -i inplace -v x="$smbc" '{print} /\[global\]/{print x}'  /etc/samba/smb.conf # https://stackoverflow.com/questions/47582028
+'
+sed -i '/workgroup/d' /etc/samba/smb.conf # Remove default workgroup line
+gawk -i inplace -v x="$smbc" '{print} /\[global\]/{print x}'  /etc/samba/smb.conf # https://stackoverflow.com/questions/47582028
 cat << EOF > /etc/sssd/sssd.conf
 # Config file for SSSD to allow for auth via AD
 [nss]
@@ -82,9 +83,7 @@ dyndns_ttl = 3600
 EOF
 chmod 700 /etc/sssd/sssd.conf
 ufw enable # Turn on the firewall
-nmcli connection modify 'Wired connection 1' ipv4.dns "192.168.1.140,192.168.1.139,1.1.1.1" 
 nmcli connection modify 'Wired connection 1' ipv4.dns-search 'csg.ius.edu'
-nmcli connection modify 'Wired connection 1' ipv4.ignore-auto-dns yes # Ignore the router's DHCP DNS addresses, for now
 systemctl restart NetworkManager
 # Configure sudo for AD
 echo '%CSG\\ws\ admins ALL=(ALL:ALL) ALL' >> /etc/sudoers # Allows members of the ws admins group to sudo on workstations
@@ -112,8 +111,8 @@ EOF
 export DEBIAN_FRONTEND="dialog"
 echo 'Enter the username for an AD user with permissions to join the domain:'
 read adadmin
-kinit $adadmin
+kinit "$adadmin"
 realm discover -v AD.CSG.IUS.EDU
-realm join AD.CSG.IUS.EDU -U $adadmin -v
+realm join AD.CSG.IUS.EDU -U "$adadmin" -v
 net ads join -k
 pam-auth-update
