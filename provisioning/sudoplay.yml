@@ -1,0 +1,15 @@
+---
+- hosts: workstations
+  remote_user: adam
+
+  tasks:
+  - name: copy default sudo rules
+    copy:
+      src: ~/sudoers
+      dest: /etc/sudoers
+      owner: root
+      group: root
+      validate: /usr/bin/visudo -cf %s
+      mode: '440'
+    become: yes
+    become_user: root
