@@ -16,11 +16,11 @@ echo "Corosync is up to date. Press a key once all other machines in the cluster
 read -n 1 -s # Stage 3
 systemctl start pve-ha-lrm
 systemctl start pve-ha-crm
+rm /etc/apt/sources.list.d/corosync3.list
 sed -i 's/stretch/buster/g' /etc/apt/sources.list
 for file in /etc/apt/sources.list.d/*; do sed -i 's/stretch/buster/g' $file; done
 apt update
 apt dist-upgrade -y
-rm /etc/apt/sources.list.d/corosync3.list
 echo "Update complete. Scheduling restart..."
 pvecm status
 shutdown -r 5min
