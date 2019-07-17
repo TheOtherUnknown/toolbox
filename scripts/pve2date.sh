@@ -11,7 +11,7 @@ systemctl stop pve-ha-crm
 echo "deb http://download.proxmox.com/debian/corosync-3/ stretch main" > /etc/apt/sources.list.d/corosync3.list
 apt update
 apt dist-upgrade --download-only -y
-apt dist-upgrade
+apt dist-upgrade -y
 echo "Corosync is up to date. Press a key once all other machines in the cluster are up to date as well."
 read -n 1 -s # Stage 3
 systemctl start pve-ha-lrm
