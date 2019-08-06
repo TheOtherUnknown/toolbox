@@ -1,5 +1,4 @@
 #!/usr/bin/env ruby
-require 'discordrb-webhooks'
 require "sinatra/base"
 require 'json'
 class HookListener < Sinatra::Base
